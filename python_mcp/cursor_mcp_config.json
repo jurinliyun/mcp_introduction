@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "user-weather": {
+      "command": "/Users/jurinliyun/MyWorkLocal/trainings/mcp/python_mcp/env/bin/python",
+      "args": [
+        "/Users/jurinliyun/MyWorkLocal/trainings/mcp/python_mcp/weather_server.py"
+      ]
+    }
+  }
+}
+

@@ -1,0 +1,10 @@
+{
+    "require": {
+        "php-mcp/server": "^3.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}

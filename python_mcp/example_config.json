@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "weather": {
+      "command": "/absolute/path/to/python_mcp/env/bin/python",
+      "args": [
+        "/absolute/path/to/python_mcp/weather_server.py"
+      ]
+    }
+  }
+}
