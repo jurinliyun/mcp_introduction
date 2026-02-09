@@ -15,7 +15,7 @@ function getLocalMysqlConnection(): \mysqli|false
     $host = '127.0.0.1';
     $username = 'root';
     $password = 'root'; // Update this if your local MySQL has a password
-    $database = '_80cefb370e783474'; // Replace with your actual database name
+    $database = 'iics_finance'; // Replace with your actual database name
 
     $mysqli = @new \mysqli($host, $username, $password, $database);
 
@@ -33,7 +33,7 @@ class PayrollElements
     /**
      * Calculates the payroll for a given employee.
      */
-    #[McpTool(name: 'get_payslip')]
+    #[McpTool(name: 'get_payslip', description: 'Get payslip for a given employee')]
     public function getPayslip(
         #[Schema(type: 'string')]
         string $employeeId,
@@ -80,6 +80,43 @@ class PayrollElements
 
         if (!$payslip) {
             return ['error' => 'No payslip found for this employee or employee name in given month/year'];
+        }
+        return $payslip;
+    }
+
+
+    #[McpTool(name: 'get_all_payslips', description: 'Get all payslips')]
+    public function getAllPayslips(): array
+    {
+        $mysqli = getLocalMysqlConnection();
+        if ($mysqli === false) {
+            return ['error' => 'Failed to connect to MySQL'];
+        }
+
+        // Use OR logic: search for payslip by either employee ID or employee name directly in salary slip join
+        $query = "
+            SELECT s.* 
+            FROM `tabSalary Slip` s
+            LEFT JOIN `tabEmployee` e ON s.employee = e.name
+            WHERE  s.docstatus = 1
+            LIMIT 100
+        ";
+    
+
+        $stmt = $mysqli->prepare($query);
+        if (!$stmt) {
+            $mysqli->close();
+            return ['error' => $mysqli->error];
+        }
+        
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $payslip = $result ? $result->fetch_assoc() : null;
+
+        $mysqli->close();
+
+        if (!$payslip) {
+            return ['error' => 'No payslips found'];
         }
         return $payslip;
     }

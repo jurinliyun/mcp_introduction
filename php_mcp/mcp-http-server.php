@@ -10,7 +10,7 @@ use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use PhpMcp\Server\Defaults\BasicContainer;
 use PhpMcp\Schema\ServerCapabilities;
-
+use App\CalculatorPrompt;
 
 class StderrLogger extends AbstractLogger
 {
@@ -30,7 +30,13 @@ try
 
     $server = Server::make()
                     ->withServerInfo('HTTP User Profiles', '1.0.0')
-                    ->withCapabilities(ServerCapabilities::make(completions: true, logging: true))
+                    ->withPrompt(CalculatorPrompt::class)
+                    ->withCapabilities(ServerCapabilities::make(
+                        completions: true,
+                        logging: true,
+                        prompts: true,  // Enable prompts capability
+                        tools: true     // Enable tools capability
+                    ))
                     ->withLogger($logger)
                     ->withContainer($container)
                     ->build();
@@ -45,7 +51,7 @@ try
     //     stateless: false            // Enable stateless mode for session-less clients
     // );
 
-    $transport = new StreamableHttpServerTransport('127.0.0.1', 8080, 'mcp');
+    $transport = new StreamableHttpServerTransport('127.0.0.1', 8081, 'mcp');
 
     $server->listen($transport);
 

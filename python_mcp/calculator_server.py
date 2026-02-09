@@ -20,21 +20,40 @@ logger = logging.getLogger("calculator-server")
 app = FastMCP("calculator-server")
 
 
+# ============================================================================
+# CORE CALCULATION FUNCTIONS (Internal use)
+# ============================================================================
+
+async def _add_internal(a: float, b: float) -> float:
+    """Internal add function. Returns raw number."""
+    return a + b
+
+
+async def _power_internal(base: float, exponent: float) -> float:
+    """Internal power function. Returns raw number."""
+    return math.pow(base, exponent)
+
+
+# ============================================================================
+# MCP TOOL REGISTRATIONS
+# ============================================================================
+
 @app.tool(
     name="add",
-    description="Add two or more numbers together.",
+    description="Add two numbers together (basic addition) - for AI orchestration.",
 )
 async def add(
     a: float = "First number",
     b: float = "Second number",
-) -> str:
-    """Add two numbers."""
+) -> float:
+    """Add two numbers. Returns raw number for AI to use in calculations."""
     try:
-        result = a + b
-        return f"{a} + {b} = {result}"
+        logger.info(f"Tool called: add (AI orchestration) - a={a}, b={b}")
+        result = await _add_internal(a, b)
+        return result
     except Exception as e:
         logger.error(f"Addition error: {e}", exc_info=True)
-        return f"Error: {str(e)}"
+        raise
 
 
 @app.tool(
@@ -92,19 +111,20 @@ async def divide(
 
 @app.tool(
     name="power",
-    description="Raise a number to a power (exponentiation).",
+    description="Raise a number to a power (exponentiation) - for AI orchestration.",
 )
 async def power(
     base: float = "Base number",
     exponent: float = "Exponent (power)",
-) -> str:
-    """Calculate base raised to the power of exponent."""
+) -> float:
+    """Calculate base raised to the power of exponent. Returns raw number."""
     try:
-        result = math.pow(base, exponent)
-        return f"{base} ^ {exponent} = {result}"
+        logger.info(f"Tool called: power (AI orchestration) - base={base}, exponent={exponent}")
+        result = await _power_internal(base, exponent)
+        return result
     except Exception as e:
         logger.error(f"Power calculation error: {e}", exc_info=True)
-        return f"Error: {str(e)}"
+        raise
 
 
 @app.tool(
@@ -185,6 +205,157 @@ async def calculate(
     except Exception as e:
         logger.error(f"Calculation error: {e}", exc_info=True)
         return f"Error: {str(e)}"
+
+@app.tool(
+    name="get_employee_details",
+    description="to search employee details",
+)
+def get_employee_details(
+    employee_id: str = "Employee ID",
+) -> str:
+    return {
+        "employee_id": employee_id,
+        "name": "John Doe",
+        "department": "HR",
+        "salary": 100000,
+    }
+
+
+# ============================================================================
+# HYBRID ORCHESTRATION TOOLS
+# ============================================================================
+
+@app.tool(
+    name="hr_add_numbers_fast",
+    description="⚡ WORLD 2 - Fast combined calculation (AUTO-TRIGGERS prompt logic).",
+)
+async def hr_add_numbers_fast(
+    a: float = "First number (base for power, first addend)",
+    b: float = "Second number (exponent for power, second addend)",
+) -> str:
+    """
+    WORLD 2 - TOOL ORCHESTRATES: Fast all-in-one calculation.
+    ⚡ AUTO-TRIGGERS the hr_add_number_prompt logic internally.
+    
+    This tool automatically executes:
+    1. power(a, b) to get a^b
+    2. Addition a + b
+    3. Combines both results
+    4. Returns formatted answer
+    
+    The prompt logic is ALWAYS executed - no AI orchestration needed!
+    """
+    try:
+        # 🔔 PROMPT AUTO-TRIGGER: Execute the workflow from hr_add_number_prompt
+        logger.info(f"🔔 AUTO-TRIGGERING PROMPT: hr_add_number_prompt logic for a={a}, b={b}")
+        
+        # Step 1 from prompt: Calculate power (use internal function)
+        logger.info(f"  Step 1: Calling power({a}, {b})")
+        power_result = await _power_internal(a, b)
+        logger.info(f"  Step 1 result: {power_result}")
+        
+        # Step 2 from prompt: Calculate addition (use internal function)
+        logger.info(f"  Step 2: Calling add({a}, {b})")
+        addition_result = await _add_internal(a, b)
+        logger.info(f"  Step 2 result: {addition_result}")
+        
+        # Step 3 from prompt: Combine results
+        logger.info(f"  Step 3: Combining {power_result} + {addition_result}")
+        combined_total = power_result + addition_result
+        logger.info(f"  Step 3 result: {combined_total}")
+        
+        # Step 4 from prompt: Format result
+        logger.info(f"  Step 4: Formatting result with emoji style")
+        result = f"⚡ Fast Mode (Prompt Auto-Executed): The power result is {power_result} ({a}^{b}), the addition result is {addition_result} ({a} + {b}), and the combined total is {combined_total}. 😊"
+        
+        logger.info(f"✅ PROMPT AUTO-TRIGGER COMPLETE")
+        return result
+    except Exception as e:
+        logger.error(f"hr_add_numbers_fast error: {e}", exc_info=True)
+        return f"Error: {str(e)}"
+
+
+@app.tool(
+    name="hr_add_numbers",
+    description="🚀 HYBRID - Smart calculation that supports both AI and tool orchestration.",
+)
+async def hr_add_numbers(
+    a: float = "First number (base for power, first addend)",
+    b: float = "Second number (exponent for power, second addend)",
+    let_ai_orchestrate: bool = False,
+) -> dict | str:
+    """
+    HYBRID: Smart calculation that supports both modes.
+    
+    - Default (let_ai_orchestrate=True): Returns instructions for AI to follow
+    - Fast mode (let_ai_orchestrate=False): Tool does everything internally
+    
+    Args:
+        a: First number
+        b: Second number
+        let_ai_orchestrate: If True, returns instructions for AI; if False, returns result directly
+    
+    Returns:
+        Instructions dict (AI mode) or formatted result string (fast mode)
+    """
+    try:
+#         if not let_ai_orchestrate:
+#             # WORLD 1: Let AI do the orchestration
+#             logger.info(f"AI orchestration mode activated - a={a}, b={b}")
+            
+#             return {
+#                 "mode": "ai_orchestration",
+#                 "instructions": f"""You are given two numbers: {a} and {b}.
+
+# Step 1: Call the 'power' tool with base={a} and exponent={b} to calculate {a}^{b}.
+# Step 2: Call the 'add' tool with a={a} and b={b} to calculate {a} + {b}.
+# Step 3: Add both results together to get the combined total.
+# Step 4: Multiply both results together.
+# Step 5: Present the final result in words with emoji style.
+
+# Example format: 'The power result is X ({a}^{b}), the addition result is Y ({a} + {b}), and the combined total is Z. 😊'""",
+#                 "hint": "AI should call 'power' and 'add' tools, then combine results, and multiply the results together."
+#             }
+        
+        # WORLD 2: Tool does everything (fast mode) - use internal functions
+        logger.info(f"Tool orchestration mode (default) - a={a}, b={b}")
+        
+        power_result = await _power_internal(a, b)
+        addition_result = await _add_internal(a, b)
+        combined_total = power_result + addition_result
+        
+        return f"🚀 Smart Mode: The power result is {power_result} ({a}^{b}), the addition result is {addition_result} ({a} + {b}), and the combined total is {combined_total}. 😊"
+    except Exception as e:
+        logger.error(f"hr_add_numbers error: {e}", exc_info=True)
+        return f"Error: {str(e)}"
+
+
+@app.prompt(
+    name="hr_add_number_prompt",
+    description="Prompt template for adding two numbers with power calculation",
+)
+async def hr_add_number_prompt(
+    a: float = "First number",
+    b: float = "Second number",
+) -> list[dict]:
+    """
+    WORLD 1 - AI ORCHESTRATES: Returns prompt instructions for AI to follow.
+    The AI will then call multiple tools step-by-step.
+    """
+    logger.info(f"Prompt triggered: hr_add_number_prompt - a={a}, b={b}")
+    
+    text = f"""You are given two numbers: {a} and {b}.
+
+Step 1: Call the MCP tool 'power' with base={a} and exponent={b} to calculate {a}^{b}.
+Step 2: Call the MCP tool 'add' with a={a} and b={b} to calculate {a} + {b}.
+Step 3: Add the results from Step 1 and Step 2 together.
+Step 4: Multiply the results from Step 1 and Step 2 together.
+Step 5: Present the final result in words with emoji style.
+
+Example format: 'The power result is X ({a}^{b}), the addition result is Y ({a} + {b}), 
+and the combined total is Z. 😊. Lets multiply the results together.'"""
+    
+    return [{"role": "user", "content": text}]
 
 
 if __name__ == "__main__":
