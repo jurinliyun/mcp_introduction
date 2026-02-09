@@ -277,72 +277,51 @@ async def hr_add_numbers_fast(
 
 @app.tool(
     name="hr_add_numbers",
-    description="🚀 HYBRID - Smart calculation that supports both AI and tool orchestration.",
+    description="🚀 Get instructions from hr_add_number_prompt for complex calculations.",
 )
 async def hr_add_numbers(
     a: float = "First number (base for power, first addend)",
     b: float = "Second number (exponent for power, second addend)",
-    let_ai_orchestrate: bool = False,
-) -> dict | str:
+) -> dict:
     """
-    HYBRID: Smart calculation that supports both modes.
-    
-    - Default (let_ai_orchestrate=True): Returns instructions for AI to follow
-    - Fast mode (let_ai_orchestrate=False): Tool does everything internally
+    This tool directs AI to use the hr_add_number_prompt.
+    It returns a reference to the prompt so AI can call it.
     
     Args:
         a: First number
         b: Second number
-        let_ai_orchestrate: If True, returns instructions for AI; if False, returns result directly
     
     Returns:
-        Instructions dict (AI mode) or formatted result string (fast mode)
+        Message directing AI to use the prompt
     """
     try:
-#         if not let_ai_orchestrate:
-#             # WORLD 1: Let AI do the orchestration
-#             logger.info(f"AI orchestration mode activated - a={a}, b={b}")
-            
-#             return {
-#                 "mode": "ai_orchestration",
-#                 "instructions": f"""You are given two numbers: {a} and {b}.
-
-# Step 1: Call the 'power' tool with base={a} and exponent={b} to calculate {a}^{b}.
-# Step 2: Call the 'add' tool with a={a} and b={b} to calculate {a} + {b}.
-# Step 3: Add both results together to get the combined total.
-# Step 4: Multiply both results together.
-# Step 5: Present the final result in words with emoji style.
-
-# Example format: 'The power result is X ({a}^{b}), the addition result is Y ({a} + {b}), and the combined total is Z. 😊'""",
-#                 "hint": "AI should call 'power' and 'add' tools, then combine results, and multiply the results together."
-#             }
+        # Direct AI to use the prompt instead of duplicating logic
+        logger.info(f"🔔 Directing AI to use hr_add_number_prompt - a={a}, b={b}")
         
-        # WORLD 2: Tool does everything (fast mode) - use internal functions
-        logger.info(f"Tool orchestration mode (default) - a={a}, b={b}")
-        
-        power_result = await _power_internal(a, b)
-        addition_result = await _add_internal(a, b)
-        combined_total = power_result + addition_result
-        
-        return f"🚀 Smart Mode: The power result is {power_result} ({a}^{b}), the addition result is {addition_result} ({a} + {b}), and the combined total is {combined_total}. 😊"
+        return {
+            "mode": "use_prompt",
+            "message": f"Please call the 'hr_add_number_prompt' prompt with a={a} and b={b} to get the instructions for this calculation.",
+            "prompt_name": "hr_add_number_prompt",
+            "parameters": {"a": a, "b": b}
+        }
     except Exception as e:
         logger.error(f"hr_add_numbers error: {e}", exc_info=True)
-        return f"Error: {str(e)}"
+        return {"error": str(e)}
 
 
 @app.prompt(
     name="hr_add_number_prompt",
-    description="Prompt template for adding two numbers with power calculation",
+    description="Prompt template for complex calculations with power and addition",
 )
 async def hr_add_number_prompt(
     a: float = "First number",
     b: float = "Second number",
 ) -> list[dict]:
     """
-    WORLD 1 - AI ORCHESTRATES: Returns prompt instructions for AI to follow.
-    The AI will then call multiple tools step-by-step.
+    AI ORCHESTRATES: Returns prompt instructions for AI to follow.
+    The AI will call multiple tools step-by-step based on these instructions.
     """
-    logger.info(f"Prompt triggered: hr_add_number_prompt - a={a}, b={b}")
+    logger.info(f"🔔 Prompt triggered: hr_add_number_prompt - a={a}, b={b}")
     
     text = f"""You are given two numbers: {a} and {b}.
 
@@ -352,8 +331,7 @@ Step 3: Add the results from Step 1 and Step 2 together.
 Step 4: Multiply the results from Step 1 and Step 2 together.
 Step 5: Present the final result in words with emoji style.
 
-Example format: 'The power result is X ({a}^{b}), the addition result is Y ({a} + {b}), 
-and the combined total is Z. 😊. Lets multiply the results together.'"""
+Example format: 'The power result is X ({a}^{b}), the addition result is Y ({a} + {b}), the combined total is Z, and the multiplied result is W. 😊'"""
     
     return [{"role": "user", "content": text}]
 
